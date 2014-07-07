@@ -1,0 +1,109 @@
+﻿@model TraderTrainer.WebUI.Models.StockDataModel
+
+@{
+    ViewBag.Title = "Index";
+}
+<div class="row">
+    <span class="col-md-8">
+        <canvas id="chartCanvas" width="800" height="600"></canvas>
+    </span>
+</div>
+
+<script>
+
+    $(document).ready(function () {
+        'use strict';
+
+        var theCanvas = document.getElementById("chartCanvas"); //("#chartCanvas");
+       
+  
+      //  ctx.beginPath();
+
+        //ctx.moveTo(5, yAxis );
+
+        //var index;
+
+        var openPrices = [ 
+@foreach( var l in Model.Lines )
+{
+    @l.Open.ToString(); @:,
+}
+        ];
+
+        var highPrices = [
+@foreach( var l in Model.Lines )
+{
+    @l.High.ToString(); @:,
+}
+        ];
+
+        var lowPrices = [
+@foreach( var l in Model.Lines )
+{
+    @l.Low.ToString(); @:,
+}
+        ];
+
+        var closePrices = [
+@foreach( var l in Model.Lines )
+{
+    @l.Close.ToString(); @:,
+}
+        ];
+
+        var volumes = [
+@foreach( var l in Model.Lines )
+{
+    @l.Volume.ToString(); @:,
+}
+        ];
+
+        var daysVisible = 30;
+        
+        var currentDay = 0;
+
+        var chartRange;
+        var volumeRange;
+
+        window.setInterval(function () {
+            var ctx = theCanvas.getContext("2d");
+
+            ctx.clearRect(0, 0, theCanvas.width, theCanvas.height);
+
+            var chartRect = ttc_getRectFromElement(theCanvas, 5);
+            chartRect.bottom -= 200;
+
+            ttc_drawAxes(ctx, chartRect);
+
+            ctx.save();
+            ttc_clipRect(ctx, chartRect);
+
+            chartRange = ttc_getHighLowRange(highPrices, lowPrices, currentDay, daysVisible);
+
+            ttc_drawHorizontalGridLines(ctx, chartRect, chartRange.minValue, chartRange.maxValue, 1);
+
+            chartRange.valueRange = chartRange.maxValue - chartRange.minValue;
+
+            ttc_drawCandlestickSeries(ctx, chartRect, openPrices, highPrices, lowPrices, closePrices, currentDay, daysVisible, daysVisible, chartRange.minValue, chartRange.maxValue);
+
+            ttc_drawLineSeries(ctx, chartRect, closePrices, currentDay, daysVisible, daysVisible, chartRange.minValue, chartRange.maxValue);
+
+            ctx.restore();
+
+            chartRect.top = chartRect.bottom + 5;
+            chartRect.bottom = chartRect.top + 100;
+
+            ttc_drawAxes(ctx, chartRect);
+
+            ctx.save();
+            ttc_clipRect(ctx, chartRect);
+
+            volumeRange = ttc_getChartRange(volumes, currentDay, daysVisible);
+            ttc_drawColumnSeries(ctx, chartRect, volumes, currentDay, daysVisible, daysVisible, 0, volumeRange.maxValue);
+
+            ctx.restore();
+            currentDay++;
+        }, 1000);
+
+    });
+</script>
