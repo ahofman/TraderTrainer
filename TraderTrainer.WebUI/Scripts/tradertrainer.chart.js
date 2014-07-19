@@ -9,6 +9,8 @@ function ttc_getChartRange(chartValues, startIndex, count) {
 
     var index = 0;
     for (index = startIndex; index < count + startIndex; index++) {
+        if (index >= chartValues.length)
+            return result;
         result.minValue = Math.min(chartValues[index], result.minValue);
         result.maxValue = Math.max(chartValues[index], result.maxValue);
     }
