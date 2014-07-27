@@ -76,13 +76,6 @@
                 this.innerText = "Pause";
         });
 
-
-      //  ctx.beginPath();
-
-        //ctx.moveTo(5, yAxis );
-
-        //var index;
-
         var openPrices = [ 
 @foreach( var l in Model.Lines )
 {
@@ -118,6 +111,8 @@
 }
         ];
 
+        var stock = new Stock(openPrices, highPrices, lowPrices, closePrices, volumes);
+
         var daysVisible = 30;
         
         var currentDay = 0;
@@ -125,7 +120,19 @@
         var chartRange;
         var volumeRange;
 
+        var chartRect = ttc_getRectFromElement(theCanvas, 5);
         
+        var mainChart, volumeChart; 
+        
+        chartRect.bottom -= theCanvas.height * 0.25;
+
+        mainChart = new Chart(theCanvas, chartRect);
+
+       // chartRect.top = chartRect.bottom + 5;
+       // chartRect.bottom = chartRect.top + theCanvas.height * 0.25;
+
+       // volumeChart = new Chart(theCanvas, chartRect);
+
         window.setInterval(function () {
             if (isPaused)
                 return;
@@ -134,9 +141,18 @@
 
             ctx.clearRect(0, 0, theCanvas.width, theCanvas.height);
 
-            var chartRect = ttc_getRectFromElement(theCanvas, 5);
-            chartRect.bottom -= theCanvas.height * 0.25;
-
+            mainChart.setClip();
+            mainChart.drawAxes();
+            mainChart.drawHorizontalGridLines();
+            mainChart.drawCandlestickSeries(stock, currentDay, daysVisible, daysVisible);
+            mainChart.drawCloseLineSeries(stock, currentDay, daysVisible, daysVisible);
+            mainChart.clearClip();
+            /*
+            volumeChart.setClip();
+            volumeChart.drawAxes();
+            volumeChart.drawVolumeColumnSeries(stock, currentDay, daysVisible, daysVisible);
+            volumeChart.clearClip();*/
+            /*
             ttc_drawAxes(ctx, chartRect);
 
             ctx.save();
@@ -154,9 +170,7 @@
 
             ctx.restore();
 
-            chartRect.top = chartRect.bottom + 5;
-            chartRect.bottom = chartRect.top + theCanvas.height * 0.25;
-
+            
             ttc_drawAxes(ctx, chartRect);
 
             ctx.save();
@@ -165,7 +179,7 @@
             volumeRange = ttc_getChartRange(volumes, currentDay, daysVisible);
             ttc_drawColumnSeries(ctx, chartRect, volumes, currentDay, daysVisible, daysVisible, 0, volumeRange.maxValue);
 
-            ctx.restore();
+            ctx.restore();*/
             currentDay++;
         }, 1000);
 

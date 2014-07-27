@@ -1,7 +1,12 @@
 ﻿
 function Chart(canvas, chartRect) {
     this.canvas = canvas;
-    this.chartRect = chartRect;
+    this.chartRect = {
+        left: chartRect.left,
+        right: chartRect.right,
+        top: chartRect.top,
+        bottom: chartRect.bottom
+    };
 }
 
 Chart.prototype.drawAxes = function () {
@@ -18,32 +23,30 @@ Chart.prototype.drawAxes = function () {
     context2d.stroke();
 }
 
-Chart.prototype.drawAll = function (stock) {
+Chart.prototype.setClip = function () {
     'use strict';
 
-    var ctx = this.canvas.getContext("2d");
+    var context2d = this.canvas.getContext("2d"),
+        rect = this.chartRect;
 
-    ctx.clearRect(this.chartRect.left, this.chartRect.top, this.chartRect.right - this.chartRect.left, this.chartRect.bottom - this.chartRect.top);
+    context2d.save();
 
-    ttc_drawAxes(ctx, this.chartRect);
-
-    ctx.save();
-    ttc_clipRect(ctx, this.chartRect);
-
-    chartRange = ttc_getHighLowRange(highPrices, lowPrices, currentDay, daysVisible);
-
-    ttc_drawHorizontalGridLines(ctx, this.chartRect, chartRange.minValue, chartRange.maxValue, 1);
-
-    chartRange.valueRange = chartRange.maxValue - chartRange.minValue;
-
-    ttc_drawCandlestickSeries(ctx, this.chartRect, openPrices, highPrices, lowPrices, closePrices, currentDay, daysVisible, daysVisible, chartRange.minValue, chartRange.maxValue);
-
-    ttc_drawLineSeries(ctx, this.chartRect, closePrices, currentDay, daysVisible, daysVisible, chartRange.minValue, chartRange.maxValue);
-
-    ctx.restore();
-
+    context2d.beginPath();
+    context2d.moveTo(rect.left, rect.top);
+    context2d.lineTo(rect.left, rect.bottom);
+    context2d.lineTo(rect.right, rect.bottom);
+    context2d.lineTo(rect.right, rect.top);
+    context2d.closePath();
+    context2d.clip();
 }
 
+Chart.prototype.clearClip = function () {
+    'use strict';
+
+    var context2d = this.canvas.getContext("2d");
+
+    context2d.restore();
+}
 
 function ttc_getRectFromElement(el, padding) {
     'use strict';
@@ -53,18 +56,6 @@ function ttc_getRectFromElement(el, padding) {
         top: padding,
         bottom: el.height - padding
     };
-}
-
-function ttc_clipRect(context2d, rect) {
-    'use strict';
-
-    context2d.beginPath();
-    context2d.moveTo(rect.left, rect.top);
-    context2d.lineTo(rect.left, rect.bottom);
-    context2d.lineTo(rect.right, rect.bottom);
-    context2d.lineTo(rect.right, rect.top);
-    context2d.closePath();
-    context2d.clip();
 }
 
 function ttc_roundToHalf(val) {
@@ -105,18 +96,20 @@ Chart.prototype.drawHorizontalGridLines = function(minDataValue,
  
 }
 
-Chart.prototype.drawLineSeries = function(dataSeries, 
+Chart.prototype.drawCloseLineSeries = function(stock, 
     index, 
     count, 
     dataCount,
-    minDataValue, 
-    maxDataValue) {
+    stockRange) {
     'use strict';
+
+    if (stockRange == undefined) {
+        stockRange = stock.getHighLowRange(index, count);
+    }
 
     var context2d = this.canvas.getContext("2d");
 
-    var dataValueRange = maxDataValue - minDataValue;
-    var firstValueNormalized = (dataSeries[index] - minDataValue) / dataValueRange;
+    var firstValueNormalized = (stock.closePrices[index] - stockRange.minValue) / stockRange.range;
     var rectVerticalRange = this.chartRect.bottom - this.chartRect.top;
     var i;
     var datumWidthPixels = (this.chartRect.right - this.chartRect.left) / dataCount;
@@ -125,48 +118,46 @@ Chart.prototype.drawLineSeries = function(dataSeries,
     context2d.lineWidth = 1;
     context2d.strokeStyle = "#111111";
     
-    context2d.moveTo(this.chartRect.left, ttc_roundToHalf(this.chartRect.bottom - (firstValueNormalized * rectVerticalRange)));
+    context2d.moveTo(ttc_roundToHalf(this.chartRect.left), ttc_roundToHalf(this.chartRect.bottom - (firstValueNormalized * rectVerticalRange)));
 
     for (i = 1; i < count; ++i) {
-        var valueNormalized = (dataSeries[i + index] - minDataValue) / dataValueRange;
-        context2d.lineTo(this.chartRect.left + datumWidthPixels * i, ttc_roundToHalf(this.chartRect.bottom - (valueNormalized * rectVerticalRange)));
+        var valueNormalized = (stock.closePrices[i + index] - stockRange.minValue) / stockRange.range;
+        context2d.lineTo(ttc_roundToHalf(this.chartRect.left + datumWidthPixels * i), ttc_roundToHalf(this.chartRect.bottom - (valueNormalized * rectVerticalRange)));
     }
 
     context2d.stroke();
 }
 
-function ttc_drawCandlestickSeries( context2d, 
-    rect,
-    openSeries,
-    highSeries,
-    lowSeries,
-    closeSeries,
+Chart.prototype.drawCandlestickSeries = function ( stock,
     index,
     count,
     dataCount,
-    minDataValue,
-    maxDataValue ) {
+    stockRange) {
     'use strict';
 
-    var dataValueRange = maxDataValue - minDataValue;
-    var rectVerticalRange = rect.bottom - rect.top;
-    var datumWidthPixels = (rect.right - rect.left) / dataCount;
+    var context2d = this.canvas.getContext("2d");
+    var rectVerticalRange = this.chartRect.bottom - this.chartRect.top;
+    var datumWidthPixels = Math.round((this.chartRect.right - this.chartRect.left) / dataCount);
     var i;
 
+    if (stockRange == undefined) {
+        stockRange = stock.getHighLowRange( index, count );
+    }
+
     function normalizeValue( val ) {
-        return (val - minDataValue) / dataValueRange;
+        return (val - stockRange.minValue) / stockRange.range;
     }
 
     for (i = 0; i < count; ++i) {
-        var normalizedOpenValue = normalizeValue( openSeries[i + index] );
-        var normalizedCloseValue = normalizeValue( closeSeries[i + index] );
-        var normalizedHighValue = normalizeValue( highSeries[i + index] );
-        var normalizedLowValue = normalizeValue(lowSeries[i + index]);
+        var normalizedOpenValue = normalizeValue( stock.openPrices[i + index] );
+        var normalizedCloseValue = normalizeValue( stock.closePrices[i + index] );
+        var normalizedHighValue = normalizeValue( stock.highPrices[i + index] );
+        var normalizedLowValue = normalizeValue( stock.lowPrices[i + index]);
 
-        var candleBodyY = rect.bottom - Math.max(normalizedCloseValue, normalizedOpenValue) * rectVerticalRange;
-        var candleHeight = Math.abs(normalizedCloseValue - normalizedOpenValue) * rectVerticalRange;
+        var candleBodyY = this.chartRect.bottom - Math.max(normalizedCloseValue, normalizedOpenValue) * rectVerticalRange;
+        var candleHeight = Math.round(Math.abs(normalizedCloseValue - normalizedOpenValue) * rectVerticalRange);
 
-        var startX = i * datumWidthPixels;
+        var startX = ttc_roundToHalf(i * datumWidthPixels);
 
         context2d.fillStyle = normalizedCloseValue > normalizedOpenValue ? "#229922" : "#992222";
         context2d.fillRect(startX + 1, ttc_roundToHalf(candleBodyY), datumWidthPixels - 2, candleHeight);
@@ -179,40 +170,38 @@ function ttc_drawCandlestickSeries( context2d,
         // top wick
         context2d.beginPath();
         context2d.moveTo(wickX, ttc_roundToHalf(candleBodyY));
-        context2d.lineTo(wickX, ttc_roundToHalf(rect.bottom - (normalizedHighValue * rectVerticalRange)));
+        context2d.lineTo(wickX, ttc_roundToHalf(this.chartRect.bottom - (normalizedHighValue * rectVerticalRange)));
         context2d.stroke();
 
         // bottom wick
         context2d.beginPath();
         context2d.moveTo(wickX, ttc_roundToHalf(candleBodyY + candleHeight));
-        context2d.lineTo(wickX, ttc_roundToHalf(rect.bottom - (normalizedLowValue * rectVerticalRange)));
+        context2d.lineTo(wickX, ttc_roundToHalf(this.chartRect.bottom - (normalizedLowValue * rectVerticalRange)));
         context2d.stroke();
     }
 }
 
-function ttc_drawColumnSeries(context2d,
-    rect,
-    dataSeries,
+Chart.prototype.drawVolumeColumnSeries = function( stock,
     index,
     count,
-    dataCount,
-    minDataValue,
-    maxDataValue) {
+    dataCount) {
     'use strict';
 
-    var dataValueRange = maxDataValue - minDataValue;
-    var rectVerticalRange = rect.bottom - rect.top;
+    var stockRange = stock.getVolumeRange(index, count);
+    var context2d = this.canvas.getContext("2d");
+    var rectVerticalRange = this.chartRect.bottom - this.chartRect.top;
     var i;
-    var datumWidthPixels = (rect.right - rect.left) / dataCount;
+    var datumWidthPixels = (this.chartRect.right - this.chartRect.left) / dataCount;
 
     for (i = 0; i < count; ++i) {
-        var t = (dataSeries[i + index] - minDataValue) / dataValueRange;
+        var t = (stock.volumes[i + index] - stockRange.minValue) / stockRange.range;
         context2d.beginPath();
         context2d.lineWidth = datumWidthPixels - 2;
         context2d.strokeStyle = "#111111";
-       
-        context2d.moveTo(rect.left + i * datumWidthPixels, rect.bottom);
-        context2d.lineTo(rect.left + i * datumWidthPixels, rect.bottom - (t * rectVerticalRange));
+        
+        var xCoord = ttc_roundToHalf(this.chartRect.left + i * datumWidthPixels);
+        context2d.moveTo(xCoord, ttc_roundToHalf(this.chartRect.bottom));
+        context2d.lineTo(xCoord, ttc_roundToHalf(this.chartRect.bottom - (t * rectVerticalRange)));
         context2d.stroke();
     }
 }
