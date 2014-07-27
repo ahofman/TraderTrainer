@@ -120,6 +120,7 @@
     <Content Include="Content\bootstrap.css" />
     <Content Include="Content\bootstrap.min.css" />
     <Content Include="Content\qunit.css" />
+    <Content Include="Content\TraderTrainer.css" />
     <Content Include="fonts\glyphicons-halflings-regular.svg" />
     <Content Include="Global.asax" />
     <Content Include="fonts\glyphicons-halflings-regular.woff" />
@@ -128,6 +129,7 @@
     <Content Include="Content\bootstrap-theme.css.map" />
     <Content Include="Content\bootstrap.css.map" />
     <None Include="Scripts\jquery-1.10.2.intellisense.js" />
+    <Content Include="Scripts\blanket.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <Content Include="Scripts\jquery-1.10.2.js" />
@@ -138,8 +140,11 @@
     <Content Include="Scripts\jquery.validate.unobtrusive.js" />
     <Content Include="Scripts\jquery.validate.unobtrusive.min.js" />
     <Content Include="Scripts\qunit.js" />
+    <Content Include="Scripts\sinon.js" />
     <Content Include="Scripts\tests.js" />
     <Content Include="Scripts\tradertrainer.chart.js" />
+    <Content Include="Scripts\tradertrainer.js" />
+    <Content Include="Scripts\tradertrainer.stock.js" />
     <Content Include="Tests\Tests.html" />
     <Content Include="Web.config" />
     <Content Include="Scripts\jquery-1.10.2.min.map" />
