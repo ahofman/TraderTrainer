@@ -99,6 +99,8 @@
         var stubContext = sinon.createStubInstance(CanvasRenderingContext2D);
 
         stubCanvas.getContext.returns(stubContext);
+        stubCanvas.width = 100;
+        stubCanvas.height = 100;
 
         return stubCanvas;
     };
@@ -108,9 +110,7 @@
 
         var stubCanvas = createStubCanvas();
 
-        var rect = { left: 0, right: 100, top: 0, bottom: 100 };
-
-        var sut = new Chart(stubCanvas, rect);
+        var sut = new Chart(stubCanvas);
         sut.drawAxes();
 
         QUnit.ok(stubCanvas.getContext("2d").stroke.calledOnce);
@@ -120,42 +120,26 @@
         'use strict';
 
         var stubCanvas = createStubCanvas();
+        var stubContext;
 
-        var rect = { left: 0, right: 100, top: 0, bottom: 100 };
+        var sut = new Chart(stubCanvas);
 
-        var sut = new Chart(stubCanvas, rect);
+        var range = {
+            minValue: 11,
+            maxValue: 21,
+            range: 10
+        };
 
-        sut.drawHorizontalGridLines(0, 10, 1);
+        sut.drawHorizontalGridLines(range, 2);
 
-        QUnit.ok(stubCanvas.getContext("2d").stroke.called);
-    });
+        stubContext = stubCanvas.getContext("2d");
+        QUnit.ok(stubContext.stroke.callCount == 5);
 
-    QUnit.test("Chart.setClip", function () {
-        'use strict';
+        // Ensure that lineTo and moveTo were always called with coordinates that are exactly
+        // on a half pixel boundary. This ensures nice crisp lines. 
 
-        var stubCanvas = createStubCanvas();
-
-        var rect = { left: 0, right: 100, top: 0, bottom: 100 };
-
-        var sut = new Chart(stubCanvas, rect);
-
-        sut.setClip();
-
-        QUnit.ok(stubCanvas.getContext("2d").clip.called);
-    });
-
-    QUnit.test("Chart.clearClip", function () {
-        'use strict';
-
-        var stubCanvas = createStubCanvas();
-
-        var rect = { left: 0, right: 100, top: 0, bottom: 100 };
-
-        var sut = new Chart(stubCanvas, rect);
-
-        sut.clearClip();
-
-        QUnit.ok(stubCanvas.getContext("2d").restore.called);
+        QUnit.ok(stubContext.moveTo.alwaysCalledWithMatch(isOnHalf, isOnHalf));
+        QUnit.ok(stubContext.lineTo.alwaysCalledWithMatch(isOnHalf, isOnHalf));
     });
 
     function isOnHalf(val) {
@@ -171,8 +155,7 @@
 
         var stubCanvas = createStubCanvas(),
             stubContext = stubCanvas.getContext("2d"),
-            rect = { left: 0, right: 100, top: 0, bottom: 100 },
-            sut = new Chart(stubCanvas, rect),
+            sut = new Chart(stubCanvas),
             testStock = createTestStock();
 
         sut.drawCloseLineSeries(testStock, 0, 5, 30);
@@ -192,21 +175,23 @@
 
         var stubCanvas = createStubCanvas(),
             stubContext = stubCanvas.getContext("2d"),
-            rect = { left: 0, right: 100, top: 0, bottom: 100 },
-            sut = new Chart(stubCanvas, rect),
+            sut = new Chart(stubCanvas),
             testStock = createTestStock();
 
         sut.drawCandlestickSeries(testStock, 0, 5, 30);
 
         QUnit.ok(stubContext.fillRect.callCount === 5);
        
+        // Ensure that the first candlestick body starts on the left edge of the chart area
+        QUnit.ok(stubContext.fillRect.firstCall.args[0] == 1);
+
         // Ensure that lineTo and moveTo were always called with coordinates that are exactly
         // on a half pixel boundary. This ensures nice crisp lines. 
 
         QUnit.ok(stubContext.moveTo.alwaysCalledWithMatch(isOnHalf, isOnHalf));
         QUnit.ok(stubContext.lineTo.alwaysCalledWithMatch(isOnHalf, isOnHalf));
 
-        QUnit.ok(stubContext.fillRect.alwaysCalledWithMatch(isOnHalf, isOnHalf, isOnWhole, isOnWhole));
+        QUnit.ok(stubContext.fillRect.alwaysCalledWithMatch(isOnWhole, isOnWhole, isOnWhole, isOnWhole));
     });
 
     QUnit.test("Chart.drawVolumeColumnSeries", function () {
@@ -214,16 +199,14 @@
 
         var stubCanvas = createStubCanvas(),
             stubContext = stubCanvas.getContext("2d"),
-            rect = { left: 0, right: 100, top: 0, bottom: 100 },
-            sut = new Chart(stubCanvas, rect),
+            sut = new Chart(stubCanvas),
             testStock = createTestStock();
 
         sut.drawVolumeColumnSeries(testStock, 0, 5, 30);
 
-        QUnit.ok(stubContext.stroke.callCount === 5);
+        QUnit.ok(stubContext.fillRect.callCount === 5);
 
         // Ensure that lineTo and moveTo were always called with coordinates that are exactly
         // on a half pixel boundary. This ensures nice crisp lines. 
-        QUnit.ok(stubContext.moveTo.alwaysCalledWithMatch(isOnHalf, isOnHalf));
-        QUnit.ok(stubContext.lineTo.alwaysCalledWithMatch(isOnHalf, isOnHalf));
+        QUnit.ok(stubContext.fillRect.alwaysCalledWithMatch(isOnWhole, isOnWhole, isOnWhole, isOnWhole));
     });

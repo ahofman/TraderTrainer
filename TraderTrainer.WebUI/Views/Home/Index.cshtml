@@ -38,6 +38,18 @@
     </div>
 </div>
 <div class="row">
+    <div class="col-md-6">
+        <div id="chartVolumeCanvasContainer1">
+            <canvas class="chartCanvas" id="volumeCanvas1"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div id="chartVolumeCanvasContainer2">
+            <canvas class="chartCanvas" id="volumeCanvas2"></canvas>
+        </div>
+    </div>
+</div>
+<div class="row">
     <div class="col-md-12">
         <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#orderModal">Place Order</button>
     </div>
@@ -58,19 +70,39 @@
 
    // $("#chartCanvasContainer1").resizeable();
 
+    var TT = {
+        mainChart: undefined,
+        volumeChart: undefined,
+        stock: undefined,
+        currentDay: 0,
+        daysVisible: 30,
+        isPaused: false,
+        redrawAll: function () {
+            this.mainChart.drawAll(this.stock, this.currentDay, this.daysVisible, this.daysVisible);
+            this.volumeChart.drawAll(this.stock, this.currentDay, this.daysVisible, this.daysVisible);
+        }
+    };
+
+    $(window).resize(function () {
+        'use strict';
+
+        var theCanvas = document.getElementById("chartCanvas1");
+        var theContainingDiv = document.getElementById("chartCanvasContainer1");
+
+        theCanvas.width = theContainingDiv.clientWidth;
+        theCanvas.height = theCanvas.width / 1.6;
+
+        TT.redrawAll();
+    });
 
     $(document).ready(function () {
         'use strict';
 
-        var theCanvas = document.getElementById("chartCanvas1"); //("#chartCanvas");
-       
-        var isPaused = false;
-
         $("#pauseToggle").click(function () {
             'use strict';
-            isPaused = !isPaused;
+            TT.isPaused = !TT.isPaused;
 
-            if (isPaused)
+            if (TT.isPaused)
                 this.innerText = "Go";
             else
                 this.innerText = "Pause";
@@ -111,76 +143,36 @@
 }
         ];
 
-        var stock = new Stock(openPrices, highPrices, lowPrices, closePrices, volumes);
+        TT.stock = new Stock(openPrices, highPrices, lowPrices, closePrices, volumes);
 
-        var daysVisible = 30;
+        TT.daysVisible = 30;
         
-        var currentDay = 0;
+        TT.currentDay = 0;
 
-        var chartRange;
-        var volumeRange;
 
-        var chartRect = ttc_getRectFromElement(theCanvas, 5);
+      //  var mainChart;//, volumeChart; 
         
-        var mainChart, volumeChart; 
+        var theMainChartCanvas = document.getElementById("chartCanvas1"); //("#chartCanvas");
+
+        TT.mainChart = new Chart(theMainChartCanvas);
+        TT.mainChart.axesEnabled = true;
+        TT.mainChart.horizontalGridLinesEnabled = true;
+        TT.mainChart.priceSeriesList = [Chart.prototype.drawCandlestickSeries, Chart.prototype.drawCloseLineSeries];
+
+        var theVolumeChartCanvas = document.getElementById("volumeCanvas1");
+
+        TT.volumeChart = new Chart(theVolumeChartCanvas);
+        TT.volumeChart.axesEnabled = true;
+        TT.volumeChart.horizontalGridLinesEnabled = false;
+        TT.volumeChart.volumeSeriesList = [Chart.prototype.drawVolumeColumnSeries];
         
-        chartRect.bottom -= theCanvas.height * 0.25;
-
-        mainChart = new Chart(theCanvas, chartRect);
-
-       // chartRect.top = chartRect.bottom + 5;
-       // chartRect.bottom = chartRect.top + theCanvas.height * 0.25;
-
-       // volumeChart = new Chart(theCanvas, chartRect);
-
         window.setInterval(function () {
-            if (isPaused)
+            if (TT.isPaused)
                 return;
 
-            var ctx = theCanvas.getContext("2d");
+            TT.redrawAll();
 
-            ctx.clearRect(0, 0, theCanvas.width, theCanvas.height);
-
-            mainChart.setClip();
-            mainChart.drawAxes();
-            mainChart.drawHorizontalGridLines();
-            mainChart.drawCandlestickSeries(stock, currentDay, daysVisible, daysVisible);
-            mainChart.drawCloseLineSeries(stock, currentDay, daysVisible, daysVisible);
-            mainChart.clearClip();
-            /*
-            volumeChart.setClip();
-            volumeChart.drawAxes();
-            volumeChart.drawVolumeColumnSeries(stock, currentDay, daysVisible, daysVisible);
-            volumeChart.clearClip();*/
-            /*
-            ttc_drawAxes(ctx, chartRect);
-
-            ctx.save();
-            ttc_clipRect(ctx, chartRect);
-
-            chartRange = ttc_getHighLowRange(highPrices, lowPrices, currentDay, daysVisible);
-
-            ttc_drawHorizontalGridLines(ctx, chartRect, chartRange.minValue, chartRange.maxValue, 1);
-
-            chartRange.valueRange = chartRange.maxValue - chartRange.minValue;
-
-            ttc_drawCandlestickSeries(ctx, chartRect, openPrices, highPrices, lowPrices, closePrices, currentDay, daysVisible, daysVisible, chartRange.minValue, chartRange.maxValue);
-
-            ttc_drawLineSeries(ctx, chartRect, closePrices, currentDay, daysVisible, daysVisible, chartRange.minValue, chartRange.maxValue);
-
-            ctx.restore();
-
-            
-            ttc_drawAxes(ctx, chartRect);
-
-            ctx.save();
-            ttc_clipRect(ctx, chartRect);
-
-            volumeRange = ttc_getChartRange(volumes, currentDay, daysVisible);
-            ttc_drawColumnSeries(ctx, chartRect, volumes, currentDay, daysVisible, daysVisible, 0, volumeRange.maxValue);
-
-            ctx.restore();*/
-            currentDay++;
+            TT.currentDay++;
         }, 1000);
 
     });
