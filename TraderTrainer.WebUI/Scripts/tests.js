@@ -9,9 +9,9 @@
     function createTestStock() {
         'use strict';
 
-        var openValues = [0, 2, 4, 6, 8];
+        var openValues = [1, 2, 4, 6, 8];
         var highValues = [1, 3, 5, 7, 9];
-        var lowValues = [0, 2, 4, 6, 8];
+        var lowValues = [1, 2, 4, 6, 8];
         var closeValues = [1, 3, 5, 7, 9];
         var volumes = [1, 2, 3, 4, 5];
 
@@ -27,9 +27,9 @@
 
         var result = sut.getHighLowRange(0, 5);
 
-        QUnit.ok(result.minValue == 0);
+        QUnit.ok(result.minValue == 1);
         QUnit.ok(result.maxValue == 9);
-        QUnit.ok(result.range == 9);
+        QUnit.ok(result.range == 8);
     });
 
     QUnit.test("Stock.getHighLowRange no arguments", function () {
@@ -39,9 +39,9 @@
 
         var result = sut.getHighLowRange();
 
-        QUnit.ok(result.minValue == 0);
+        QUnit.ok(result.minValue == 1);
         QUnit.ok(result.maxValue == 9);
-        QUnit.ok(result.range == 9);
+        QUnit.ok(result.range == 8);
     });
 
     QUnit.test("Stock.getHighLowRange off end of array", function () {
@@ -209,4 +209,81 @@
         // Ensure that lineTo and moveTo were always called with coordinates that are exactly
         // on a half pixel boundary. This ensures nice crisp lines. 
         QUnit.ok(stubContext.fillRect.alwaysCalledWithMatch(isOnWhole, isOnWhole, isOnWhole, isOnWhole));
+    });
+
+    QUnit.test("TT.placeOrder buy happy path", function () {
+        'use strict';
+        TT.init();
+        TT.currentCashBalance = 10000;
+        TT.brokerage = 15;
+
+        TT.stocks[TT.stockSymbols.AAA] = createTestStock();
+
+        TT.placeOrder(TT.stockSymbols.AAA, 1000, TT.orderType.BUY);
+
+        TT.processOrders();
+
+        QUnit.ok(TT.currentCashBalance == 8985);
+        QUnit.ok(TT.positions[TT.stockSymbols.AAA].volume == 1000);
+        // Ensure that there are no more pending orders
+        QUnit.ok(TT.pendingOrders.length == 0);
+    });
+
+    QUnit.test("TT.placeOrder short happy path", function () {
+        'use strict';
+        TT.init();
+        TT.currentCashBalance = 10000;
+        TT.brokerage = 15;
+
+        TT.stocks[TT.stockSymbols.AAA] = createTestStock();
+
+        TT.placeOrder(TT.stockSymbols.AAA, 1000, TT.orderType.SHORT);
+
+        TT.processOrders();
+
+        QUnit.ok(TT.currentCashBalance == 10985);
+        QUnit.ok(TT.positions[TT.stockSymbols.AAA].volume == 1000);
+        // Ensure that there are no more pending orders
+        QUnit.ok(TT.pendingOrders.length == 0);
+    });
+
+
+    QUnit.test("TT.placeOrder not enough balance", function () {
+        'use strict';
+        TT.init();
+        TT.currentCashBalance = 10000;
+        TT.brokerage = 15;
+
+        TT.stocks[TT.stockSymbols.AAA] = createTestStock();
+
+        TT.placeOrder(TT.stockSymbols.AAA, 10000, TT.orderType.BUY);
+
+        QUnit.throws(function () {
+            TT.processOrders();
+        });
+
+        QUnit.ok(TT.currentCashBalance == 10000);
+        QUnit.ok(TT.positions[TT.stockSymbols.AAA] == undefined);
+    });
+
+    QUnit.test("TT.placeOrder twice on same stock", function () {
+        'use strict';
+        TT.init();
+        TT.currentCashBalance = 10000;
+        TT.brokerage = 15;
+
+        TT.stocks[TT.stockSymbols.AAA] = createTestStock();
+
+        TT.placeOrder(TT.stockSymbols.AAA, 1000, TT.orderType.BUY);
+
+        TT.processOrders();
+
+        QUnit.throws(function () {
+            TT.placeOrder(TT.stockSymbols.AAA, 100, TT.orderType.BUY)
+        });
+
+        TT.processOrders();
+
+        QUnit.ok(TT.currentCashBalance == 8985);
+       // QUnit.ok(TT.positions[TT.stockSymbols.AAA] == undefined);
     });

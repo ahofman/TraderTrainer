@@ -28,24 +28,24 @@
 <div class="row">
     <div class="col-md-6">
         <div id="chartCanvasContainer1">
-            <canvas class="chartCanvas" id="chartCanvas1"></canvas>
+            <canvas class="mainChartCanvas" id="chartCanvas1"></canvas>
         </div>
     </div>
     <div class="col-md-6">
         <div id="chartCanvasContainer2">
-            <canvas class="chartCanvas" id="chartCanvas2"></canvas>
+            <canvas class="mainChartCanvas" id="chartCanvas2"></canvas>
         </div>
     </div>
 </div>
 <div class="row">
     <div class="col-md-6">
         <div id="chartVolumeCanvasContainer1">
-            <canvas class="chartCanvas" id="volumeCanvas1"></canvas>
+            <canvas class="volumeChartCanvas" id="volumeCanvas1"></canvas>
         </div>
     </div>
     <div class="col-md-6">
         <div id="chartVolumeCanvasContainer2">
-            <canvas class="chartCanvas" id="volumeCanvas2"></canvas>
+            <canvas class="volumeChartCanvas" id="volumeCanvas2"></canvas>
         </div>
     </div>
 </div>
@@ -57,12 +57,24 @@
 <div class="row">
     <div class="col-md-6">
         <div id="chartCanvasContainer3">
-            <canvas class="chartCanvas" id="chartCanvas3"></canvas>
+            <canvas class="mainChartCanvas" id="chartCanvas3"></canvas>
         </div>
     </div>
     <div class="col-md-6">
         <div id="chartCanvasContainer4">
-            <canvas class="chartCanvas" id="chartCanvas4"></canvas>
+            <canvas class="mainChartCanvas" id="chartCanvas4"></canvas>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div id="chartVolumeCanvasContainer3">
+                <canvas class="volumeChartCanvas" id="volumeCanvas3"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div id="chartVolumeCanvasContainer4">
+                <canvas class="volumeChartCanvas" id="volumeCanvas4"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -70,27 +82,24 @@
 
    // $("#chartCanvasContainer1").resizeable();
 
-    var TT = {
-        mainChart: undefined,
-        volumeChart: undefined,
-        stock: undefined,
-        currentDay: 0,
-        daysVisible: 30,
-        isPaused: false,
-        redrawAll: function () {
-            this.mainChart.drawAll(this.stock, this.currentDay, this.daysVisible, this.daysVisible);
-            this.volumeChart.drawAll(this.stock, this.currentDay, this.daysVisible, this.daysVisible);
-        }
-    };
+    
 
     $(window).resize(function () {
         'use strict';
 
-        var theCanvas = document.getElementById("chartCanvas1");
-        var theContainingDiv = document.getElementById("chartCanvasContainer1");
-
-        theCanvas.width = theContainingDiv.clientWidth;
-        theCanvas.height = theCanvas.width / 1.6;
+        var mainCanvases = $(".mainChartCanvas");
+        var i = 0;
+        for (i = 0; i < mainCanvases.length; i++) {
+            mainCanvases[i].width = mainCanvases[i].parentElement.clientWidth;
+            mainCanvases[i].height = mainCanvases[i].width / 1.6;
+        }
+       
+        var volumeCanvases = $(".volumeChartCanvas");
+        var i = 0;
+        for (i = 0; i < volumeCanvases.length; i++) {
+            volumeCanvases[i].width = volumeCanvases[i].parentElement.clientWidth;
+            volumeCanvases[i].height = volumeCanvases[i].width / 2.4;
+        }
 
         TT.redrawAll();
     });
@@ -143,7 +152,10 @@
 }
         ];
 
-        TT.stock = new Stock(openPrices, highPrices, lowPrices, closePrices, volumes);
+        TT.stocks[0] = new Stock(openPrices, highPrices, lowPrices, closePrices, volumes);
+        TT.stocks[1] = new Stock(openPrices, highPrices, lowPrices, closePrices, volumes);
+        TT.stocks[2] = new Stock(openPrices, highPrices, lowPrices, closePrices, volumes);
+        TT.stocks[3] = new Stock(openPrices, highPrices, lowPrices, closePrices, volumes);
 
         TT.daysVisible = 30;
         
@@ -152,27 +164,38 @@
 
       //  var mainChart;//, volumeChart; 
         
-        var theMainChartCanvas = document.getElementById("chartCanvas1"); //("#chartCanvas");
+        //var theMainChartCanvas = document.getElementById("chartCanvas1"); //("#chartCanvas");
 
-        TT.mainChart = new Chart(theMainChartCanvas);
-        TT.mainChart.axesEnabled = true;
-        TT.mainChart.horizontalGridLinesEnabled = true;
-        TT.mainChart.priceSeriesList = [Chart.prototype.drawCandlestickSeries, Chart.prototype.drawCloseLineSeries];
-
-        var theVolumeChartCanvas = document.getElementById("volumeCanvas1");
-
-        TT.volumeChart = new Chart(theVolumeChartCanvas);
-        TT.volumeChart.axesEnabled = true;
-        TT.volumeChart.horizontalGridLinesEnabled = false;
-        TT.volumeChart.volumeSeriesList = [Chart.prototype.drawVolumeColumnSeries];
+        var i;
+        var mainChartCanvases = $(".mainChartCanvas");
+        for (i = 0; i < mainChartCanvases.length; i++) {
+            TT.mainCharts[i] = new Chart(mainChartCanvases[i]);
+            TT.mainCharts[i].axesEnabled = true;
+            TT.mainCharts[i].horizontalGridLinesEnabled = true;
+            TT.mainCharts[i].priceSeriesList = [Chart.prototype.drawCandlestickSeries, Chart.prototype.drawCloseLineSeries];
+        }
         
+        var volumeChartCanvases = $(".volumeChartCanvas");
+
+        //var theVolumeChartCanvas = document.getElementById("volumeCanvas1");
+
+        for (i = 0; i < volumeChartCanvases.length; i++) {
+            TT.volumeCharts[i] = new Chart(volumeChartCanvases[i]);
+            TT.volumeCharts[i].axesEnabled = true;
+            TT.volumeCharts[i].horizontalGridLinesEnabled = false;
+            TT.volumeCharts[i].volumeSeriesList = [Chart.prototype.drawVolumeColumnSeries];
+        }
+        
+        TT.redrawAll();
+
         window.setInterval(function () {
             if (TT.isPaused)
                 return;
+            
+            TT.currentDay++;
 
             TT.redrawAll();
 
-            TT.currentDay++;
         }, 1000);
 
     });
