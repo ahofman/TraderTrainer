@@ -25,7 +25,7 @@
     daysVisible: 30,
     isPaused: false,
     init: function () {
-        "use strict";
+        'use strict';
 
         this.mainCharts = [];
         this.volumeCharts = [];
@@ -39,27 +39,35 @@
         this.isPaused = false;
     },
     redrawAll: function () {
-        "use strict";
+        'use strict';
 
         var i;
+        var horizontalRange = {
+            minValue: this.currentDay,
+            maxValue: this.currentDay + this.daysVisible,
+            range: this.daysVisible
+        };
+
         for (i = 0; i < this.mainCharts.length; i++) {
-            this.mainCharts[i].drawAll(this.stocks[i], this.currentDay, this.daysVisible, this.daysVisible);
-            this.volumeCharts[i].drawAll(this.stocks[i], this.currentDay, this.daysVisible, this.daysVisible);
+            var stockVerticalRange = this.stocks[i].getHighLowRange(horizontalRange.minValue, horizontalRange.range);
+            
+            this.mainCharts[i].drawAll(horizontalRange, stockVerticalRange);
+            this.volumeCharts[i].drawAll(horizontalRange);
         }
     },
     placeOrder: function (stockIndex, volume, orderType) {
-        "use strict";
+        'use strict';
 
         if (this.positions[stockIndex] != undefined &&
             this.positions[stockIndex].positionType == this.positionType.LONG &&
             (orderType == this.orderType.BUY || orderType == this.orderType.SHORT)) {
-            throw "Can't place a buy or short order on a stock that has a long position";
+            throw 'Cant place a buy or short order on a stock that has a long position';
         }
 
         if (this.positions[stockIndex] != undefined &&
             this.positions[stockIndex].positionType == this.positionType.SHORT &&
             (orderType == this.orderType.SHORT || orderType == this.orderType.SELL)) {
-            throw "Can't place a short or sell order on a stock that has a short position";
+            throw 'Cant place a short or sell order on a stock that has a short position';
         }
 
         this.pendingOrders.push({
@@ -68,8 +76,13 @@
             volume: volume
         });
     },
+    processDay: function() {
+        'use strict';
+        this.processOrders();
+        this.processFees();
+    },
     processOrders: function () {
-        "use strict";
+        'use strict';
 
         var i;
         while (this.pendingOrders.length > 0) {
@@ -81,35 +94,41 @@
             if (order.orderType == this.orderType.BUY) {
                 var tradePrice = stockPrice * order.volume;
                 tradePrice += this.brokerage;
+  
+                this.currentCashBalance -= tradePrice;
+                this.positions[stockIndex] = {
+                    openPrice: stock.openPrices[this.currentDay],
+                    volume: order.volume,
+                    dayOpened: this.currentDay,
+                    positionType: this.positionType.LONG
+                };
 
-                if (tradePrice <= this.currentCashBalance) {
-                    this.currentCashBalance -= tradePrice;
-                    this.positions[stockIndex] = {
-                        openPrice: stock.openPrices[this.currentDay],
-                        volume: order.volume,
-                        dayOpened: this.currentDay,
-                        positionType: this.positionType.LONG
-                    };
-                } else {
-                    throw "failed order!";
-                }
+            //    this.mainCharts[stockIndex].priceSeriesList.push( {
+              //      draw: Chart.prototype.drawCloseFilledLineSeries,
+                //    stock: );
+              
             } else if (order.orderType == this.orderType.SHORT) {
                 var tradePrice = stockPrice * order.volume;
 
-                if (this.brokerage <= this.currentCashBalance) {
-                    this.currentCashBalance -= this.brokerage;
-                    this.currentCashBalance += tradePrice;
-                    this.positions[stockIndex] = {
-                        openPrice: stockPrice,
-                        volume: order.volume,
-                        dayOpened: this.currentDay,
-                        positionType: this.positionType.SHORT
-                    };
-                } else {
-                    throw "failed order!";
-                }
+                // todo: can you short at exactly the market price?
+                // will the broker make a margin call if the price goes up?
+                // is there a maximum volume you can short?
+                this.currentCashBalance -= this.brokerage;
+                this.currentCashBalance += tradePrice;
+                this.positions[stockIndex] = {
+                    openPrice: stockPrice,
+                    volume: order.volume,
+                    dayOpened: this.currentDay,
+                    positionType: this.positionType.SHORT
+                };
             }
+        }  
+    },
+    processFees: function () {
+        'use strict';
+        // 100 dollar dishonor fee per day. 
+        if (this.currentCashBalance < 0) {
+            this.currentCashBalance -= 100;
         }
-        
     }
 });

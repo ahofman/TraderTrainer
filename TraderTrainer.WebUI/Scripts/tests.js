@@ -1,9 +1,41 @@
 ﻿
-    QUnit.test("ttc_roundToHalf", function () {
-        QUnit.ok(ttc_roundToHalf(2) == 1.5);
-        QUnit.ok(ttc_roundToHalf(1.7) == 1.5);
-        QUnit.ok(ttc_roundToHalf(1.2) == 0.5);
-        QUnit.ok(ttc_roundToHalf(1.5) == 1.5);
+    QUnit.test('ChartUtils.roundToHalf', function () {
+        QUnit.ok(ChartUtils.roundToHalf(2) == 1.5);
+        QUnit.ok(ChartUtils.roundToHalf(1.7) == 1.5);
+        QUnit.ok(ChartUtils.roundToHalf(1.2) == 0.5);
+        QUnit.ok(ChartUtils.roundToHalf(1.5) == 1.5);
+    });
+
+    QUnit.test('ChartUtils.getSeriesRange', function () {
+        'use strict';
+
+        var series = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        var result = ChartUtils.getSeriesRange(series, {
+            minValue: 0,
+            maxValue: 2,
+            range: 2
+        });
+
+        QUnit.ok(result.minValue == 1);
+        QUnit.ok(result.maxValue == 2);
+        QUnit.ok(result.range == 1);
+    });
+
+    QUnit.test('ChartUtils.getSeriesRange off end of array', function () {
+        'use strict';
+
+        var series = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        var result = ChartUtils.getSeriesRange(series, {
+            minValue: 0,
+            maxValue: 12,
+            range: 12
+        });
+
+        QUnit.ok(result.minValue == 1);
+        QUnit.ok(result.maxValue == 10);
+        QUnit.ok(result.range == 9);
     });
 
     function createTestStock() {
@@ -20,7 +52,7 @@
         return sut;
     };
 
-    QUnit.test("Stock.getHighLowRange range happy path", function () {
+    QUnit.test('Stock.getHighLowRange range happy path', function () {
         'use strict';
 
         var sut = createTestStock();
@@ -32,7 +64,7 @@
         QUnit.ok(result.range == 8);
     });
 
-    QUnit.test("Stock.getHighLowRange no arguments", function () {
+    QUnit.test('Stock.getHighLowRange no arguments', function () {
         'use strict';
 
         var sut = createTestStock();
@@ -44,7 +76,7 @@
         QUnit.ok(result.range == 8);
     });
 
-    QUnit.test("Stock.getHighLowRange off end of array", function () {
+    QUnit.test('Stock.getHighLowRange off end of array', function () {
         'use strict';
 
         var sut = createTestStock();
@@ -56,7 +88,7 @@
         QUnit.ok(result.range == 3);
     });
 
-    QUnit.test("Stock.getVolumeRange range happy path", function () {
+    QUnit.test('Stock.getVolumeRange range happy path', function () {
         'use strict';
 
         var sut = createTestStock();
@@ -68,7 +100,7 @@
         QUnit.ok(result.range == 4);
     });
 
-    QUnit.test("Stock.getVolumeRange off end of array", function () {
+    QUnit.test('Stock.getVolumeRange off end of array', function () {
         'use strict';
 
         var sut = createTestStock();
@@ -80,7 +112,7 @@
         QUnit.ok(result.range == 1);
     });
 
-    QUnit.test("Stock.getVolumeRange no arguments", function () {
+    QUnit.test('Stock.getVolumeRange no arguments', function () {
         'use strict';
 
         var sut = createTestStock();
@@ -105,7 +137,7 @@
         return stubCanvas;
     };
 
-    QUnit.test("Chart.drawAxes strokes once", function () {
+    QUnit.test('Chart.drawAxes strokes once', function () {
         'use strict';
 
         var stubCanvas = createStubCanvas();
@@ -113,10 +145,10 @@
         var sut = new Chart(stubCanvas);
         sut.drawAxes();
 
-        QUnit.ok(stubCanvas.getContext("2d").stroke.calledOnce);
+        QUnit.ok(stubCanvas.getContext('2d').stroke.calledOnce);
     });
     
-    QUnit.test("Chart.drawHorizontalGridLines", function () {
+    QUnit.test('Chart.drawHorizontalGridLines', function () {
         'use strict';
 
         var stubCanvas = createStubCanvas();
@@ -132,7 +164,7 @@
 
         sut.drawHorizontalGridLines(range, 2);
 
-        stubContext = stubCanvas.getContext("2d");
+        stubContext = stubCanvas.getContext('2d');
         QUnit.ok(stubContext.stroke.callCount == 5);
 
         // Ensure that lineTo and moveTo were always called with coordinates that are exactly
@@ -150,15 +182,21 @@
         return Math.round(val) - val === 0;
     }
 
-    QUnit.test("Chart.drawCloseLineSeries", function () {
+    QUnit.test('Chart.drawCloseLineSeries', function () {
         'use strict';
 
         var stubCanvas = createStubCanvas(),
-            stubContext = stubCanvas.getContext("2d"),
+            stubContext = stubCanvas.getContext('2d'),
             sut = new Chart(stubCanvas),
             testStock = createTestStock();
 
-        sut.drawCloseLineSeries(testStock, 0, 5, 30);
+        var hRange = {
+            minValue: 0,
+            maxValue: 5,
+            range: 5
+        };
+
+        sut.drawLineSeries(testStock.closePrices, hRange);
 
         QUnit.ok(stubContext.stroke.called);
         QUnit.ok(stubContext.lineTo.callCount === 4);
@@ -170,15 +208,48 @@
         QUnit.ok(stubContext.lineTo.alwaysCalledWithMatch(isOnHalf, isOnHalf));
     });
 
-    QUnit.test("Chart.drawCandlestickSeries", function () {
+    QUnit.test('Chart.drawCloseLineSeries off end of stock length', function () {
         'use strict';
 
         var stubCanvas = createStubCanvas(),
-            stubContext = stubCanvas.getContext("2d"),
+            stubContext = stubCanvas.getContext('2d'),
             sut = new Chart(stubCanvas),
             testStock = createTestStock();
 
-        sut.drawCandlestickSeries(testStock, 0, 5, 30);
+        var hRange = {
+            minValue: 0,
+            maxValue: 30,
+            range: 30
+        };
+
+        sut.drawLineSeries(testStock.closePrices, hRange);
+
+        QUnit.ok(stubContext.stroke.called);
+        QUnit.ok(stubContext.lineTo.callCount === 4);
+
+        // Ensure that lineTo and moveTo were always called with coordinates that are exactly
+        // on a half pixel boundary. This ensures nice crisp lines. 
+
+        QUnit.ok(stubContext.moveTo.alwaysCalledWithMatch(isOnHalf, isOnHalf));
+        QUnit.ok(stubContext.lineTo.alwaysCalledWithMatch(isOnHalf, isOnHalf));
+    });
+
+
+    QUnit.test('Chart.drawCandlestickSeries', function () {
+        'use strict';
+
+        var stubCanvas = createStubCanvas(),
+            stubContext = stubCanvas.getContext('2d'),
+            sut = new Chart(stubCanvas),
+            testStock = createTestStock();
+
+        var hRange = {
+            minValue: 0,
+            maxValue: 5,
+            range: 5
+        };
+
+        sut.drawCandlestickSeries(testStock, hRange);
 
         QUnit.ok(stubContext.fillRect.callCount === 5);
        
@@ -194,15 +265,21 @@
         QUnit.ok(stubContext.fillRect.alwaysCalledWithMatch(isOnWhole, isOnWhole, isOnWhole, isOnWhole));
     });
 
-    QUnit.test("Chart.drawVolumeColumnSeries", function () {
+    QUnit.test('Chart.drawVolumeColumnSeries', function () {
         'use strict';
 
         var stubCanvas = createStubCanvas(),
-            stubContext = stubCanvas.getContext("2d"),
+            stubContext = stubCanvas.getContext('2d'),
             sut = new Chart(stubCanvas),
             testStock = createTestStock();
 
-        sut.drawVolumeColumnSeries(testStock, 0, 5, 30);
+        var hRange = {
+            minValue: 0,
+            maxValue: 5,
+            range: 5
+        };
+
+        sut.drawColumnSeries(testStock.volumes, hRange);
 
         QUnit.ok(stubContext.fillRect.callCount === 5);
 
@@ -211,7 +288,7 @@
         QUnit.ok(stubContext.fillRect.alwaysCalledWithMatch(isOnWhole, isOnWhole, isOnWhole, isOnWhole));
     });
 
-    QUnit.test("TT.placeOrder buy happy path", function () {
+    QUnit.test('TT.placeOrder buy happy path', function () {
         'use strict';
         TT.init();
         TT.currentCashBalance = 10000;
@@ -221,7 +298,7 @@
 
         TT.placeOrder(TT.stockSymbols.AAA, 1000, TT.orderType.BUY);
 
-        TT.processOrders();
+        TT.processDay();
 
         QUnit.ok(TT.currentCashBalance == 8985);
         QUnit.ok(TT.positions[TT.stockSymbols.AAA].volume == 1000);
@@ -229,7 +306,7 @@
         QUnit.ok(TT.pendingOrders.length == 0);
     });
 
-    QUnit.test("TT.placeOrder short happy path", function () {
+    QUnit.test('TT.placeOrder short happy path', function () {
         'use strict';
         TT.init();
         TT.currentCashBalance = 10000;
@@ -239,7 +316,7 @@
 
         TT.placeOrder(TT.stockSymbols.AAA, 1000, TT.orderType.SHORT);
 
-        TT.processOrders();
+        TT.processDay();
 
         QUnit.ok(TT.currentCashBalance == 10985);
         QUnit.ok(TT.positions[TT.stockSymbols.AAA].volume == 1000);
@@ -247,8 +324,7 @@
         QUnit.ok(TT.pendingOrders.length == 0);
     });
 
-
-    QUnit.test("TT.placeOrder not enough balance", function () {
+    QUnit.test('TT.placeOrder not enough balance', function () {
         'use strict';
         TT.init();
         TT.currentCashBalance = 10000;
@@ -258,15 +334,13 @@
 
         TT.placeOrder(TT.stockSymbols.AAA, 10000, TT.orderType.BUY);
 
-        QUnit.throws(function () {
-            TT.processOrders();
-        });
-
-        QUnit.ok(TT.currentCashBalance == 10000);
-        QUnit.ok(TT.positions[TT.stockSymbols.AAA] == undefined);
+        TT.processDay();
+        
+        QUnit.ok(TT.currentCashBalance == -115);    // includes 100 dollar dishonor fee
+        QUnit.ok(TT.positions[TT.stockSymbols.AAA].volume == 10000);
     });
 
-    QUnit.test("TT.placeOrder twice on same stock", function () {
+    QUnit.test('TT.placeOrder twice on same stock', function () {
         'use strict';
         TT.init();
         TT.currentCashBalance = 10000;
@@ -276,13 +350,13 @@
 
         TT.placeOrder(TT.stockSymbols.AAA, 1000, TT.orderType.BUY);
 
-        TT.processOrders();
+        TT.processDay();
 
         QUnit.throws(function () {
             TT.placeOrder(TT.stockSymbols.AAA, 100, TT.orderType.BUY)
         });
 
-        TT.processOrders();
+        TT.processDay();
 
         QUnit.ok(TT.currentCashBalance == 8985);
        // QUnit.ok(TT.positions[TT.stockSymbols.AAA] == undefined);

@@ -172,7 +172,14 @@
             TT.mainCharts[i] = new Chart(mainChartCanvases[i]);
             TT.mainCharts[i].axesEnabled = true;
             TT.mainCharts[i].horizontalGridLinesEnabled = true;
-            TT.mainCharts[i].priceSeriesList = [Chart.prototype.drawCandlestickSeries, Chart.prototype.drawCloseLineSeries];
+            TT.mainCharts[i].dataSeriesList = [{
+                drawFunction: Chart.prototype.drawCandlestickSeries, 
+                dataSeries: TT.stocks[i]
+            },
+            {
+                drawFunction: Chart.prototype.drawLineSeries,
+                dataSeries: TT.stocks[i].closePrices
+            }];
         }
         
         var volumeChartCanvases = $(".volumeChartCanvas");
@@ -183,7 +190,10 @@
             TT.volumeCharts[i] = new Chart(volumeChartCanvases[i]);
             TT.volumeCharts[i].axesEnabled = true;
             TT.volumeCharts[i].horizontalGridLinesEnabled = false;
-            TT.volumeCharts[i].volumeSeriesList = [Chart.prototype.drawVolumeColumnSeries];
+            TT.volumeCharts[i].dataSeriesList = [{
+                drawFunction: Chart.prototype.drawColumnSeries,
+                dataSeries: TT.stocks[i].volumes
+            }];
         }
         
         TT.redrawAll();
